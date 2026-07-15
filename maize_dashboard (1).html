@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Maize Survey Dashboard — Kiambu County</title>
+<style>
+:root{
+  --dk:#1B4332;--md:#2D6A4F;--lt:#D8F3DC;--acc:#52B788;
+  --warn:#F4A261;--danger:#E63946;--gold:#F9C74F;--blue:#3A86FF;
+  --bg:#F0F4F2;--card:#fff;--border:#D5E0D8;
+  --txt:#1A1A1A;--muted:#5F6B64;--radius:14px;
+  --shadow:0 2px 12px rgba(0,0,0,0.07);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,'Segoe UI',sans-serif;background:var(--bg);color:var(--txt);font-size:15px}
+
+.header{background:linear-gradient(135deg,var(--dk) 0%,var(--md) 100%);color:#fff;padding:20px 24px;display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:14px}
+.header-left h1{font-size:22px;font-weight:800;line-height:1.2}
+.header-left p{font-size:13px;opacity:0.75;margin-top:4px}
+.header-meta{font-size:11px;opacity:0.6;margin-top:6px}
+.header-right{display:flex;gap:8px;align-items:flex-start;flex-shrink:0}
+.btn-refresh{background:rgba(255,255,255,0.15);color:#fff;border:1.5px solid rgba(255,255,255,0.3);padding:9px 16px;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;transition:background 0.15s}
+.btn-refresh:hover{background:rgba(255,255,255,0.25)}
+.btn-export{background:var(--gold);color:#1A1A1A;border:none;padding:9px 16px;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer}
+
+.main{max-width:1200px;margin:0 auto;padding:20px}
+
+/* ── STATS ── */
+.stats-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:24px}
+.stat{background:var(--card);border-radius:var(--radius);padding:18px 16px;box-shadow:var(--shadow);text-align:center;border-top:4px solid var(--md)}
+.stat.warn{border-top-color:var(--warn)}
+.stat.danger{border-top-color:var(--danger)}
+.stat.gold{border-top-color:var(--gold)}
+.stat-val{font-size:34px;font-weight:800;color:var(--dk);line-height:1}
+.stat-lbl{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:0.6px;margin-top:6px;font-weight:600}
+
+/* ── SECTION HEADER ── */
+.sec-hdr{display:flex;align-items:center;justify-content:space-between;margin:24px 0 12px;flex-wrap:wrap;gap:8px}
+.sec-title{font-size:17px;font-weight:800;color:var(--dk);display:flex;align-items:center;gap:8px}
+.badge{background:var(--md);color:#fff;border-radius:20px;padding:3px 11px;font-size:12px;font-weight:700}
+
+/* ── COUNTY COVERAGE MAP ── */
+.coverage-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px;margin-bottom:28px}
+.cov-card{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden}
+.cov-header{padding:11px 14px;display:flex;align-items:center;justify-content:space-between}
+.cov-name{font-weight:800;font-size:14px;color:var(--dk)}
+.cov-sub{font-size:11px;color:var(--muted);margin-top:1px}
+.cov-submitted{font-size:11px;font-weight:700;color:var(--acc)}
+.cov-bar-wrap{padding:0 14px 12px}
+.cov-progress{height:7px;background:var(--lt);border-radius:4px;overflow:hidden}
+.cov-progress-fill{height:100%;border-radius:4px;background:var(--acc);transition:width 0.5s}
+.cov-stats{display:flex;justify-content:space-between;margin-top:6px;font-size:12px;color:var(--muted)}
+.cov-stat-val{font-weight:700;color:var(--dk)}
+.day-pips{display:flex;gap:4px;padding:0 14px 10px}
+.pip{flex:1;height:20px;border-radius:4px;background:var(--bg);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:var(--muted)}
+.pip.done{background:var(--acc);color:#fff}
+
+/* ── FILTERS ── */
+.filter-bar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px;align-items:center}
+.filt{padding:8px 14px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;background:var(--card);color:var(--txt);outline:none;cursor:pointer;font-family:inherit}
+.filt:focus{border-color:var(--md)}
+.btn-clr{padding:8px 14px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;background:var(--card);cursor:pointer;color:var(--muted)}
+
+/* ── REPORT CARDS ── */
+.report-list{display:flex;flex-direction:column;gap:12px}
+.rep-card{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden;border-left:5px solid var(--acc)}
+.rep-card.s-excellent{border-left-color:#52B788}
+.rep-card.s-good{border-left-color:var(--blue)}
+.rep-card.s-fair{border-left-color:var(--warn)}
+.rep-card.s-poor{border-left-color:var(--danger)}
+.rep-header{padding:14px 18px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;cursor:pointer}
+.rep-title{font-weight:800;font-size:15px;color:var(--dk)}
+.rep-meta{font-size:12px;color:var(--muted);margin-top:2px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.rep-right{display:flex;align-items:center;gap:8px;flex-shrink:0}
+.status-pill{padding:5px 12px;border-radius:20px;font-size:12px;font-weight:700;white-space:nowrap}
+.sp-excellent{background:#D8F3DC;color:#1B4332}
+.sp-good{background:#E8F4FD;color:#1a3d6e}
+.sp-fair{background:#FFF3E0;color:#7a3d00}
+.sp-poor{background:#FFE4E6;color:#7f1d1d}
+.day-tag{background:var(--lt);color:var(--dk);border-radius:20px;padding:4px 10px;font-size:12px;font-weight:800}
+.toggle-arr{color:var(--muted);font-size:18px;transition:transform 0.2s;flex-shrink:0}
+.toggle-arr.open{transform:rotate(90deg)}
+.rep-body{display:none;border-top:1px solid var(--border)}
+.rep-body.open{display:block}
+
+.rb-section{padding:16px 18px;border-bottom:1px solid var(--border)}
+.rb-section:last-child{border-bottom:none}
+.rb-sec-title{font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:10px}
+.kpi-row{display:flex;gap:10px;flex-wrap:wrap}
+.kpi{background:var(--bg);border-radius:10px;padding:10px 14px;flex:1;min-width:100px;text-align:center}
+.kpi-val{font-size:22px;font-weight:800;color:var(--dk)}
+.kpi-lbl{font-size:11px;color:var(--muted);margin-top:2px;font-weight:600}
+.ward-table{width:100%;border-collapse:collapse;font-size:13px}
+.ward-table th{text-align:left;padding:6px 8px;color:var(--muted);font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:0.4px;border-bottom:1.5px solid var(--border)}
+.ward-table td{padding:7px 8px;border-bottom:1px solid var(--bg)}
+.ward-table tr:last-child td{border-bottom:none}
+.ward-table .num{text-align:right;font-weight:600;color:var(--dk)}
+.ward-table .zero{color:#ccc}
+.challenge-block{background:var(--bg);border-radius:10px;padding:12px 14px;margin-bottom:8px;border-left:3px solid var(--warn)}
+.challenge-block:last-child{margin-bottom:0}
+.ch-status-pill{display:inline-block;padding:3px 10px;border-radius:12px;font-size:11px;font-weight:700;margin-bottom:6px}
+.cs-resolved{background:#D8F3DC;color:#1B4332}
+.cs-ongoing{background:#FFF3E0;color:#7a3d00}
+.cs-unresolved{background:#FFE4E6;color:#7f1d1d}
+.ch-q{font-size:12px;font-weight:700;color:var(--muted);margin:4px 0 2px}
+.ch-a{font-size:13px;line-height:1.5}
+.meta-footer{font-size:11px;color:var(--muted);text-align:right;margin-top:10px}
+
+/* ── WARD OVERVIEW TABLE ── */
+.ward-overview{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden;margin-bottom:28px}
+.wo-table{width:100%;border-collapse:collapse;font-size:13px}
+.wo-table th{background:var(--dk);color:#fff;padding:10px 12px;text-align:left;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.4px;white-space:nowrap}
+.wo-table td{padding:9px 12px;border-bottom:1px solid var(--bg);vertical-align:middle}
+.wo-table tr:hover td{background:#FAFFF9}
+.wo-table .sub-name{font-weight:700;color:var(--dk)}
+.wo-table .w-name{font-size:13px;color:var(--muted);padding-left:20px}
+.wo-table .num{text-align:right;font-weight:600}
+.wo-table .zero{color:#ccc;text-align:right}
+.wo-table .sub-row td{background:var(--lt);font-weight:800;color:var(--dk)}
+.wo-table .sub-row td.num{color:var(--md)}
+
+.empty{text-align:center;padding:60px 20px;color:var(--muted)}
+.empty-icon{font-size:52px;margin-bottom:12px}
+.empty h3{font-size:18px;font-weight:700;margin-bottom:6px;color:var(--txt)}
+
+.loading{text-align:center;padding:50px;color:var(--muted)}
+.spinner{display:inline-block;width:28px;height:28px;border:3px solid var(--border);border-top-color:var(--md);border-radius:50%;animation:spin 0.7s linear infinite;margin-bottom:12px}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+@media(max-width:680px){
+  .stats-row{grid-template-columns:1fr 1fr}
+  .coverage-grid{grid-template-columns:1fr 1fr}
+  .main{padding:12px}
+  .header{padding:14px 16px}
+}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-left">
+    <h1>🌽 Maize Assessment Survey</h1>
+    <p>Kiambu County — 12 Sub-Counties · 60 Wards</p>
+    <div class="header-meta" id="lastRefresh"></div>
+  </div>
+  <div class="header-right">
+    <button class="btn-refresh" onclick="loadData()">🔄 Refresh</button>
+    <button class="btn-export" onclick="exportCSV()">⬇ Export CSV</button>
+  </div>
+</div>
+
+<div class="main">
+  <div id="loadingEl" class="loading"><div class="spinner"></div><br>Loading reports…</div>
+  <div id="dashEl" style="display:none">
+
+    <!-- Stats -->
+    <div class="stats-row" id="statsRow"></div>
+
+    <!-- Coverage per sub-county -->
+    <div class="sec-hdr"><div class="sec-title">📍 Sub-County Coverage</div><div id="covBadge" class="badge">0/12 reporting</div></div>
+    <div class="coverage-grid" id="coverageGrid"></div>
+
+    <!-- Ward overview -->
+    <div class="sec-hdr"><div class="sec-title">🗺️ Ward-Level Cumulative Totals</div></div>
+    <div class="ward-overview"><table class="wo-table" id="wardTable"><thead><tr><th>Sub-County / Ward</th><th style="text-align:right">Farmers Reached</th><th style="text-align:right">Agripreneurs</th><th style="text-align:right">Days Reported</th></tr></thead><tbody id="wardBody"></tbody></table></div>
+
+    <!-- Filters + Reports -->
+    <div class="sec-hdr">
+      <div class="sec-title">📋 Daily Reports <span class="badge" id="repCount">0</span></div>
+    </div>
+    <div class="filter-bar">
+      <select class="filt" id="fSC" onchange="applyFilters()"><option value="">All Sub-Counties</option></select>
+      <select class="filt" id="fDay" onchange="applyFilters()"><option value="">All Days</option><option value="1">Day 1</option><option value="2">Day 2</option><option value="3">Day 3</option><option value="4">Day 4</option><option value="5">Day 5</option></select>
+      <select class="filt" id="fStatus" onchange="applyFilters()"><option value="">All Statuses</option><option value="excellent">Excellent</option><option value="good">Good</option><option value="fair">Fair</option><option value="poor">Poor</option></select>
+      <button class="btn-clr" onclick="clearFilters()">✕ Clear</button>
+    </div>
+    <div class="report-list" id="reportList"></div>
+
+  </div>
+</div>
+
+<script>
+const SUBCOUNTIES=[
+  {name:"Gatundu North",wards:["Gituamba","Githobokoni","Chania","Mang'u"]},
+  {name:"Gatundu South",wards:["Kiamwangi","Kiganjo","Ndarugo","Ngenda"]},
+  {name:"Githunguri",wards:["Githunguri","Githiga","Ikinu","Ngewa","Komothai"]},
+  {name:"Juja",wards:["Murera","Theta","Juja","Witeithie","Kalimoni"]},
+  {name:"Kabete",wards:["Gitaru","Muguga","Nyathuna","Kabete","Uthiru"]},
+  {name:"Kiambaa",wards:["Cianda","Karuri","Ndenderu","Muchatha","Kihara"]},
+  {name:"Kiambu",wards:["Ting'ang'a","Ndumberi","Riabai","Township"]},
+  {name:"Kikuyu",wards:["Karai","Nachu","Sigona","Kikuyu","Kinoo"]},
+  {name:"Lari",wards:["Kinale","Kijabe","Nyanduma","Kamburu","Lari/Kirenga"]},
+  {name:"Limuru",wards:["Bibirioni","Limuru Central","Ndeiya","Limuru East","Ngecha/Tigoni"]},
+  {name:"Ruiru",wards:["Gitothua","Biashara","Gatongora","Kahawa/Sukari","Kahawa Wendani","Kiuu","Mwiki","Mwihoko"]},
+  {name:"Thika Town",wards:["Township","Kamenu","Hospital","Gatuanyaga","Ngoliba"]},
+];
+
+let allReports=[];
+
+function statusLabel(s){return{excellent:'🌟 Excellent',good:'✅ Good',fair:'⚠️ Fair',poor:'🔴 Poor'}[s]||'—'}
+function statusPillClass(s){return{excellent:'sp-excellent',good:'sp-good',fair:'sp-fair',poor:'sp-poor'}[s]||'sp-good'}
+function mitClass(s){return{resolved:'cs-resolved',ongoing:'cs-ongoing',unresolved:'cs-unresolved'}[s]||'cs-ongoing'}
+function mitLabel(s){return{resolved:'✅ Resolved',ongoing:'🔄 Ongoing',unresolved:'❌ Unresolved'}[s]||'—'}
+
+async function loadData(){
+  document.getElementById('loadingEl').style.display='block';
+  document.getElementById('dashEl').style.display='none';
+  try{
+    let reports=[];
+    try{const r=await window.storage.get('maize_survey_reports',true);if(r)reports=JSON.parse(r.value);}catch(e){}
+    allReports=reports.sort((a,b)=>b.id-a.id);
+    document.getElementById('lastRefresh').textContent='Refreshed: '+new Date().toLocaleString();
+    render(allReports);
+  }catch(e){
+    document.getElementById('loadingEl').innerHTML='<p style="color:#E63946">❌ Failed to load. Please refresh.</p>';
+  }
+}
+
+function render(reports){
+  renderStats(reports);
+  renderCoverage(reports);
+  renderWardTable(reports);
+  populateFilters();
+  renderReports(reports);
+  document.getElementById('loadingEl').style.display='none';
+  document.getElementById('dashEl').style.display='block';
+}
+
+function renderStats(reports){
+  const totalFarmers=reports.reduce((s,r)=>s+r.totalFarmers,0);
+  const totalAgri=reports.reduce((s,r)=>s+r.totalAgri,0);
+  const scReporting=new Set(reports.map(r=>r.subCounty)).size;
+  const issues=reports.filter(r=>r.status==='fair'||r.status==='poor').length;
+  const challenges=reports.reduce((s,r)=>s+(r.challenges?.length||0),0);
+  document.getElementById('statsRow').innerHTML=`
+    <div class="stat"><div class="stat-val">${totalFarmers.toLocaleString()}</div><div class="stat-lbl">Farmers Reached</div></div>
+    <div class="stat gold"><div class="stat-val">${totalAgri}</div><div class="stat-lbl">Agripreneurs Deployed</div></div>
+    <div class="stat"><div class="stat-val">${scReporting}/12</div><div class="stat-lbl">Sub-Counties Active</div></div>
+    <div class="stat"><div class="stat-val">${reports.length}</div><div class="stat-lbl">Reports Submitted</div></div>
+    <div class="stat warn"><div class="stat-val">${issues}</div><div class="stat-lbl">Delayed Reports</div></div>
+    <div class="stat danger"><div class="stat-val">${challenges}</div><div class="stat-lbl">Challenges Logged</div></div>`;
+}
+
+function renderCoverage(reports){
+  const grid=document.getElementById('coverageGrid');
+  const active=new Set(reports.map(r=>r.subCounty)).size;
+  document.getElementById('covBadge').textContent=active+'/12 reporting';
+  grid.innerHTML=SUBCOUNTIES.map(sc=>{
+    const scReps=reports.filter(r=>r.subCounty===sc.name);
+    const days=[...new Set(scReps.map(r=>r.day))].sort();
+    const totalF=scReps.reduce((s,r)=>s+r.totalFarmers,0);
+    const totalA=scReps.reduce((s,r)=>s+r.totalAgri,0);
+    const wardsHit=new Set(scReps.flatMap(r=>r.wardData.filter(w=>w.farmers>0).map(w=>w.ward))).size;
+    const wardPct=sc.wards.length>0?Math.round(wardsHit/sc.wards.length*100):0;
+    const pips=[1,2,3,4,5].map(d=>`<div class="pip ${days.includes(d)?'done':''}">D${d}</div>`).join('');
+    return`<div class="cov-card">
+      <div class="cov-header">
+        <div><div class="cov-name">${sc.name}</div><div class="cov-sub">${sc.wards.length} wards · ${scReps.length} report${scReps.length!==1?'s':''}</div></div>
+        ${scReps.length>0?`<div class="cov-submitted">${wardPct}%</div>`:''}
+      </div>
+      <div class="cov-bar-wrap">
+        <div class="cov-progress"><div class="cov-progress-fill" style="width:${wardPct}%"></div></div>
+        <div class="cov-stats"><span>Wards covered: <span class="cov-stat-val">${wardsHit}/${sc.wards.length}</span></span><span>Farmers: <span class="cov-stat-val">${totalF.toLocaleString()}</span></span></div>
+      </div>
+      <div class="day-pips">${pips}</div>
+    </div>`;
+  }).join('');
+}
+
+function renderWardTable(reports){
+  const body=document.getElementById('wardBody');
+  if(reports.length===0){body.innerHTML='<tr><td colspan="4" style="text-align:center;color:#999;padding:20px">No data yet</td></tr>';return;}
+  let html='';
+  SUBCOUNTIES.forEach(sc=>{
+    const scReps=reports.filter(r=>r.subCounty===sc.name);
+    if(scReps.length===0)return;
+    let scFarmers=0,scAgri=0,scDays=new Set();
+    sc.wards.forEach(ward=>{
+      const wData=scReps.flatMap(r=>r.wardData.filter(w=>w.ward===ward));
+      const wF=wData.reduce((s,w)=>s+w.farmers,0);
+      const wA=wData.reduce((s,w)=>s+w.agripreneurs,0);
+      scFarmers+=wF;scAgri+=wA;
+      scReps.forEach(r=>scDays.add(r.day));
+      html+=`<tr><td class="w-name">${ward}</td><td class="${wF>0?'num':'zero'}">${wF>0?wF.toLocaleString():'—'}</td><td class="${wA>0?'num':'zero'}">${wA>0?wA:'—'}</td><td class="${scDays.size>0?'num':'zero'}">${scDays.size>0?scDays.size:'—'}</td></tr>`;
+    });
+    html=`<tr class="sub-row"><td class="sub-name">📍 ${sc.name}</td><td class="num">${scFarmers.toLocaleString()}</td><td class="num">${scAgri}</td><td class="num">${scDays.size}</td></tr>`+html;
+  });
+  body.innerHTML=html||'<tr><td colspan="4" style="text-align:center;color:#999;padding:20px">No ward data yet</td></tr>';
+}
+
+function populateFilters(){
+  const sel=document.getElementById('fSC');
+  const cur=sel.value;
+  sel.innerHTML='<option value="">All Sub-Counties</option>';
+  SUBCOUNTIES.forEach(sc=>{
+    if(allReports.some(r=>r.subCounty===sc.name)){
+      const o=document.createElement('option');
+      o.value=sc.name;o.textContent=sc.name;
+      if(sc.name===cur)o.selected=true;
+      sel.appendChild(o);
+    }
+  });
+}
+
+function applyFilters(){
+  const sc=document.getElementById('fSC').value;
+  const day=document.getElementById('fDay').value;
+  const st=document.getElementById('fStatus').value;
+  let f=allReports;
+  if(sc)f=f.filter(r=>r.subCounty===sc);
+  if(day)f=f.filter(r=>r.day===parseInt(day));
+  if(st)f=f.filter(r=>r.status===st);
+  renderReports(f);
+}
+
+function clearFilters(){
+  ['fSC','fDay','fStatus'].forEach(id=>document.getElementById(id).value='');
+  renderReports(allReports);
+}
+
+function renderReports(reports){
+  document.getElementById('repCount').textContent=reports.length;
+  const list=document.getElementById('reportList');
+  if(reports.length===0){
+    list.innerHTML=`<div class="empty"><div class="empty-icon">📭</div><h3>No reports yet</h3><p>Reports submitted by SCTs will appear here automatically.</p></div>`;
+    return;
+  }
+  list.innerHTML=reports.map((r,i)=>{
+    const wardRows=(r.wardData||[]).map(w=>`<tr><td>${w.ward}</td><td class="${w.farmers>0?'num':'zero'}">${w.farmers>0?w.farmers.toLocaleString():'—'}</td><td class="${w.agripreneurs>0?'num':'zero'}">${w.agripreneurs>0?w.agripreneurs:'—'}</td></tr>`).join('');
+    const chBlocks=(r.challenges||[]).map(c=>`
+      <div class="challenge-block">
+        <div class="ch-status-pill ${mitClass(c.status)}">${mitLabel(c.status)}</div>
+        <div class="ch-q">Challenge:</div><div class="ch-a">${c.what}</div>
+        ${c.how?`<div class="ch-q" style="margin-top:6px">How handled:</div><div class="ch-a">${c.how}</div>`:''}
+      </div>`).join('');
+    const variance=r.agriDeployed-r.agriPlanned;
+    const varStr=(variance>=0?'+':'')+variance;
+    return`
+    <div class="rep-card s-${r.status}">
+      <div class="rep-header" onclick="toggleRep(${i})">
+        <div>
+          <div class="rep-title">📍 ${r.subCounty}</div>
+          <div class="rep-meta">
+            <span>${r.date}</span>
+            <span>·</span><span>${r.totalFarmers.toLocaleString()} farmers</span>
+            <span>·</span><span>${r.totalAgri} agripreneurs</span>
+            <span>·</span><span>by ${r.submittedBy}</span>
+          </div>
+        </div>
+        <div class="rep-right">
+          <span class="day-tag">Day ${r.day}</span>
+          <span class="status-pill ${statusPillClass(r.status)}">${statusLabel(r.status)}</span>
+          <span class="toggle-arr" id="arr-${i}">›</span>
+        </div>
+      </div>
+      <div class="rep-body" id="rb-${i}">
+        <div class="rb-section">
+          <div class="rb-sec-title">Key Numbers</div>
+          <div class="kpi-row">
+            <div class="kpi"><div class="kpi-val">${r.totalFarmers.toLocaleString()}</div><div class="kpi-lbl">Farmers Reached</div></div>
+            <div class="kpi"><div class="kpi-val">${r.agriDeployed}/${r.agriPlanned}</div><div class="kpi-lbl">Agripreneurs (${varStr})</div></div>
+            <div class="kpi"><div class="kpi-val">${r.wardData.filter(w=>w.farmers>0).length}/${r.wardData.length}</div><div class="kpi-lbl">Wards Active</div></div>
+          </div>
+        </div>
+        <div class="rb-section">
+          <div class="rb-sec-title">Ward Breakdown</div>
+          <table class="ward-table">
+            <thead><tr><th>Ward</th><th style="text-align:right">Farmers</th><th style="text-align:right">Agripreneurs</th></tr></thead>
+            <tbody>${wardRows}</tbody>
+          </table>
+        </div>
+        ${chBlocks?`<div class="rb-section"><div class="rb-sec-title">Challenges & Mitigation</div>${chBlocks}</div>`:''}
+        ${r.observations?`<div class="rb-section"><div class="rb-sec-title">Field Observations</div><p style="font-size:14px;line-height:1.6">${r.observations}</p></div>`:''}
+        ${r.tomorrowPlan?`<div class="rb-section"><div class="rb-sec-title">Tomorrow's Plan</div><p style="font-size:14px;line-height:1.6">${r.tomorrowPlan}</p></div>`:''}
+        <div class="rb-section"><div class="meta-footer">Submitted ${new Date(r.submittedAt).toLocaleString()}</div></div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function toggleRep(i){
+  const b=document.getElementById('rb-'+i),a=document.getElementById('arr-'+i);
+  b.classList.toggle('open');a.classList.toggle('open');
+}
+
+function exportCSV(){
+  if(!allReports.length){alert('No reports to export');return;}
+  const rows=[['Date','Day','Sub-County','Ward','Farmers Reached','Agripreneurs','Status','Submitted By']];
+  allReports.forEach(r=>{
+    (r.wardData||[]).forEach(w=>{
+      rows.push([r.date,r.day,r.subCounty,w.ward,w.farmers,w.agripreneurs,r.status,r.submittedBy]);
+    });
+  });
+  const csv=rows.map(r=>r.map(v=>'"'+String(v).replace(/"/g,'""')+'"').join(',')).join('\n');
+  const a=document.createElement('a');
+  a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);
+  a.download='maize_survey_'+new Date().toISOString().split('T')[0]+'.csv';
+  a.click();
+}
+
+loadData();
+setInterval(loadData,60000);
+</script>
+</body>
+</html>

@@ -1,0 +1,551 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#1B4332">
+<title>Maize Survey — Daily Report</title>
+<style>
+:root{
+  --dk:#1B4332;--md:#2D6A4F;--lt:#D8F3DC;--acc:#52B788;
+  --warn:#F4A261;--danger:#E63946;--gold:#F9C74F;
+  --bg:#F0F4F1;--card:#fff;--border:#D0D9D3;
+  --txt:#1A1A1A;--muted:#6B7280;--radius:14px;
+  --shadow:0 2px 12px rgba(0,0,0,0.08);
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+body{font-family:-apple-system,'Segoe UI',sans-serif;background:var(--bg);color:var(--txt);font-size:16px;min-height:100vh}
+
+/* ── HEADER ── */
+.header{background:linear-gradient(135deg,var(--dk) 0%,var(--md) 100%);color:#fff;padding:0 16px 0;position:sticky;top:0;z-index:200;box-shadow:0 3px 10px rgba(0,0,0,0.25)}
+.header-inner{display:flex;align-items:center;justify-content:space-between;padding:14px 0 6px}
+.header h1{font-size:16px;font-weight:800;letter-spacing:0.3px;line-height:1.2}
+.header p{font-size:11px;opacity:0.75;margin-top:2px}
+.corn-icon{font-size:28px;flex-shrink:0;margin-left:8px}
+.prog-wrap{padding:8px 0 12px}
+.prog-bar{height:5px;background:rgba(255,255,255,0.25);border-radius:3px;overflow:hidden}
+.prog-fill{height:100%;background:var(--gold);border-radius:3px;transition:width 0.4s ease}
+.prog-label{font-size:10px;opacity:0.7;margin-top:4px;text-align:right}
+
+/* ── SCREENS ── */
+.screen{display:none;padding:16px;max-width:540px;margin:0 auto;padding-bottom:40px}
+.screen.active{display:block}
+
+/* ── STEP INDICATOR ── */
+.step-dots{display:flex;gap:6px;justify-content:center;margin-bottom:20px}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--border);transition:all 0.3s}
+.dot.active{background:var(--md);width:24px;border-radius:4px}
+.dot.done{background:var(--acc)}
+
+/* ── SCREEN TITLE ── */
+.screen-title{font-size:20px;font-weight:800;color:var(--dk);margin-bottom:4px}
+.screen-sub{font-size:13px;color:var(--muted);margin-bottom:20px;line-height:1.4}
+
+/* ── SUB-COUNTY PICKER ── */
+.sc-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.sc-card{background:var(--card);border-radius:var(--radius);padding:14px 12px;box-shadow:var(--shadow);border:2px solid transparent;cursor:pointer;transition:all 0.15s;text-align:center}
+.sc-card:active{transform:scale(0.97)}
+.sc-card.selected{border-color:var(--md);background:var(--lt)}
+.sc-card .sc-num{font-size:11px;font-weight:700;color:var(--acc);text-transform:uppercase;letter-spacing:0.5px}
+.sc-card .sc-name{font-size:14px;font-weight:700;color:var(--dk);margin-top:3px;line-height:1.3}
+.sc-card .sc-wards{font-size:11px;color:var(--muted);margin-top:2px}
+
+/* ── CARDS ── */
+.card{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);margin-bottom:14px;overflow:hidden}
+.card-header{padding:12px 16px;display:flex;align-items:center;gap:10px}
+.card-header .ch-icon{width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
+.card-header .ch-title{font-size:15px;font-weight:700;color:var(--dk)}
+.card-header .ch-sub{font-size:12px;color:var(--muted);margin-top:1px}
+.card-divider{height:1px;background:var(--border);margin:0 16px}
+.card-body{padding:14px 16px}
+
+/* ── FIELDS ── */
+.field{margin-bottom:14px}
+.field:last-child{margin-bottom:0}
+.field label{display:block;font-size:12px;font-weight:700;color:var(--muted);margin-bottom:6px;text-transform:uppercase;letter-spacing:0.5px}
+.field input,.field select,.field textarea{width:100%;padding:12px 14px;border:1.5px solid var(--border);border-radius:10px;font-size:16px;font-family:inherit;background:#FAFFF9;color:var(--txt);outline:none;transition:border-color 0.15s;-webkit-appearance:none}
+.field input:focus,.field select:focus,.field textarea:focus{border-color:var(--md);background:#fff}
+.field textarea{min-height:80px;resize:vertical;line-height:1.5}
+.field input.locked{background:var(--lt);border-color:var(--acc);color:var(--dk);font-weight:700}
+.field select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M0 0l6 8 6-8z' fill='%232D6A4F'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 14px center;padding-right:36px}
+.field-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+
+/* ── WARD ROWS ── */
+.ward-row{display:grid;grid-template-columns:1fr 80px 80px;gap:8px;align-items:center;padding:10px 0;border-bottom:1px solid var(--border)}
+.ward-row:last-child{border-bottom:none}
+.ward-name{font-size:14px;font-weight:600;color:var(--dk)}
+.ward-input{padding:9px 6px;border:1.5px solid var(--border);border-radius:8px;font-size:15px;text-align:center;font-family:inherit;background:#FAFFF9;outline:none;width:100%;transition:border-color 0.15s}
+.ward-input:focus{border-color:var(--md);background:#fff}
+.ward-hdr{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.4px;text-align:center}
+.ward-total-row{background:var(--lt);border-radius:10px;padding:10px 12px;display:grid;grid-template-columns:1fr 80px 80px;gap:8px;align-items:center;margin-top:10px}
+.ward-total-row .wt-label{font-size:14px;font-weight:700;color:var(--dk)}
+.ward-total-row .wt-val{font-size:16px;font-weight:800;color:var(--md);text-align:center}
+
+/* ── CHALLENGE CARDS ── */
+.challenge-item{background:var(--bg);border-radius:10px;padding:12px;margin-bottom:10px;border:1px solid var(--border)}
+.challenge-item:last-child{margin-bottom:0}
+.ci-num{font-size:11px;font-weight:700;color:var(--acc);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px}
+.ci-field{margin-bottom:8px}
+.ci-field:last-child{margin-bottom:0}
+.ci-field label{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.4px;display:block;margin-bottom:4px}
+.ci-field textarea{width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:14px;font-family:inherit;background:#fff;outline:none;resize:vertical;min-height:60px;line-height:1.4}
+.ci-field textarea:focus{border-color:var(--md)}
+.mitigation-status{display:flex;gap:8px;margin-top:6px}
+.mit-btn{flex:1;padding:9px 6px;border-radius:8px;border:1.5px solid var(--border);background:var(--card);font-size:13px;font-weight:600;cursor:pointer;text-align:center;transition:all 0.15s;color:var(--txt)}
+.mit-btn.sel-resolved{background:#D8F3DC;border-color:#52B788;color:#1B4332}
+.mit-btn.sel-ongoing{background:#FFF3E0;border-color:#F4A261;color:#8B3D00}
+.mit-btn.sel-unresolved{background:#FFE4E6;border-color:#E63946;color:#7f1d1d}
+
+/* ── STATUS ── */
+.status-grid{display:flex;flex-direction:column;gap:10px}
+.status-opt{padding:14px 16px;border-radius:12px;border:2px solid var(--border);background:var(--card);cursor:pointer;display:flex;align-items:center;gap:12px;transition:all 0.15s}
+.status-opt:active{transform:scale(0.98)}
+.status-opt .so-icon{font-size:24px;flex-shrink:0}
+.status-opt .so-label{font-size:15px;font-weight:700}
+.status-opt .so-desc{font-size:12px;color:var(--muted);margin-top:2px}
+.status-opt.sel-excellent{background:#D8F3DC;border-color:#52B788}
+.status-opt.sel-good{background:#E8F4FD;border-color:#3A86FF}
+.status-opt.sel-fair{background:#FFF3E0;border-color:#F4A261}
+.status-opt.sel-poor{background:#FFE4E6;border-color:#E63946}
+
+/* ── BUTTONS ── */
+.btn-primary{width:100%;padding:16px;background:var(--md);color:#fff;border:none;border-radius:var(--radius);font-size:17px;font-weight:800;cursor:pointer;box-shadow:0 4px 12px rgba(45,106,79,0.35);transition:all 0.15s;letter-spacing:0.3px;display:flex;align-items:center;justify-content:center;gap:8px}
+.btn-primary:active{opacity:0.88;transform:scale(0.99)}
+.btn-primary:disabled{opacity:0.5;cursor:not-allowed;transform:none}
+.btn-secondary{width:100%;padding:14px;background:transparent;color:var(--md);border:2px solid var(--md);border-radius:var(--radius);font-size:16px;font-weight:700;cursor:pointer;transition:all 0.15s}
+.btn-secondary:active{background:var(--lt)}
+.btn-row{display:grid;grid-template-columns:1fr 2fr;gap:10px;margin-top:8px}
+.btn-back-sm{padding:14px;background:var(--card);color:var(--txt);border:1.5px solid var(--border);border-radius:var(--radius);font-size:15px;font-weight:600;cursor:pointer;transition:all 0.15s}
+.btn-back-sm:active{background:var(--bg)}
+
+/* ── SUCCESS ── */
+.success-wrap{text-align:center;padding:30px 16px}
+.success-anim{font-size:72px;margin-bottom:16px;animation:pop 0.5s ease}
+@keyframes pop{0%{transform:scale(0.5);opacity:0}80%{transform:scale(1.1)}100%{transform:scale(1);opacity:1}}
+.success-wrap h2{font-size:24px;font-weight:800;color:var(--dk);margin-bottom:8px}
+.success-wrap p{color:var(--muted);font-size:15px;line-height:1.6}
+.success-stats{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:20px 0}
+.ss-card{background:var(--lt);border-radius:12px;padding:14px;text-align:center}
+.ss-val{font-size:28px;font-weight:800;color:var(--dk)}
+.ss-lbl{font-size:12px;color:var(--md);margin-top:2px;font-weight:600}
+
+/* ── TOAST ── */
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#1A1A1A;color:#fff;padding:11px 22px;border-radius:24px;font-size:14px;z-index:999;opacity:0;transition:opacity 0.3s;pointer-events:none;white-space:nowrap;box-shadow:0 4px 16px rgba(0,0,0,0.3)}
+.toast.show{opacity:1}
+.spinner{display:inline-block;width:18px;height:18px;border:2.5px solid rgba(255,255,255,0.4);border-top-color:#fff;border-radius:50%;animation:spin 0.7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-inner">
+    <div>
+      <h1>🌽 Maize Assessment Survey</h1>
+      <p>Kiambu County — Daily Field Report</p>
+    </div>
+    <div class="corn-icon">📋</div>
+  </div>
+  <div class="prog-wrap">
+    <div class="prog-bar"><div class="prog-fill" id="progFill" style="width:0%"></div></div>
+    <div class="prog-label" id="progLabel">Step 1 of 5</div>
+  </div>
+</div>
+
+<!-- ══ STEP 1: Sub-County ══ -->
+<div class="screen active" id="s1">
+  <div class="step-dots" id="dots1"></div>
+  <div class="screen-title">Select Sub-County</div>
+  <div class="screen-sub">Tap your sub-county to begin the daily report</div>
+  <div class="sc-grid" id="scGrid"></div>
+</div>
+
+<!-- ══ STEP 2: Survey Info ══ -->
+<div class="screen" id="s2">
+  <div class="step-dots" id="dots2"></div>
+  <div class="screen-title">Survey Details</div>
+  <div class="screen-sub">Basic information about today's field activity</div>
+
+  <div class="card">
+    <div class="card-header">
+      <div class="ch-icon" style="background:#D8F3DC">📍</div>
+      <div><div class="ch-title">Location & Date</div><div class="ch-sub">Pre-filled from your selection</div></div>
+    </div>
+    <div class="card-divider"></div>
+    <div class="card-body">
+      <div class="field"><label>Sub-County</label><input type="text" id="f_sc" class="locked" readonly></div>
+      <div class="field-row">
+        <div class="field"><label>Date</label><input type="date" id="f_date"></div>
+        <div class="field"><label>Survey Day</label>
+          <select id="f_day">
+            <option value="">Select</option>
+            <option value="1">Day 1</option><option value="2">Day 2</option><option value="3">Day 3</option>
+            <option value="4">Day 4</option><option value="5">Day 5</option>
+          </select>
+        </div>
+      </div>
+      <div class="field"><label>Reported By (Name & Title)</label><input type="text" id="f_name" placeholder="e.g. John Kamau — SCT Githunguri"></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <div class="ch-icon" style="background:#FFF3E0">👨‍🌾</div>
+      <div><div class="ch-title">Agripreneurs Deployed</div><div class="ch-sub">How many were active today across the sub-county</div></div>
+    </div>
+    <div class="card-divider"></div>
+    <div class="card-body">
+      <div class="field-row">
+        <div class="field"><label>Planned</label><input type="number" id="f_agri_plan" placeholder="0" min="0"></div>
+        <div class="field"><label>Actually Deployed</label><input type="number" id="f_agri_act" placeholder="0" min="0"></div>
+      </div>
+      <div class="field"><label>Names / Notes (optional)</label><input type="text" id="f_agri_names" placeholder="e.g. 5 deployed, 2 absent — transport issues"></div>
+    </div>
+  </div>
+
+  <div class="btn-row">
+    <button class="btn-back-sm" onclick="goToStep(1)">‹ Back</button>
+    <button class="btn-primary" onclick="goToStep(3)">Next — Ward Data →</button>
+  </div>
+</div>
+
+<!-- ══ STEP 3: Ward Data ══ -->
+<div class="screen" id="s3">
+  <div class="step-dots" id="dots3"></div>
+  <div class="screen-title">Ward-Level Data</div>
+  <div class="screen-sub" id="s3sub">Enter farmers reached & agripreneurs per ward</div>
+
+  <div class="card">
+    <div class="card-header">
+      <div class="ch-icon" style="background:#E8F4FD">🗺️</div>
+      <div><div class="ch-title" id="wardCardTitle">Wards</div><div class="ch-sub">Fill each ward surveyed today</div></div>
+    </div>
+    <div class="card-divider"></div>
+    <div class="card-body">
+      <div style="display:grid;grid-template-columns:1fr 80px 80px;gap:8px;padding-bottom:8px;border-bottom:2px solid var(--border);margin-bottom:4px">
+        <div class="ward-hdr">Ward</div>
+        <div class="ward-hdr">Farmers<br>Reached</div>
+        <div class="ward-hdr">Agri-<br>preneurs</div>
+      </div>
+      <div id="wardRows"></div>
+      <div class="ward-total-row" id="wardTotals">
+        <div class="wt-label">📊 Sub-County Total</div>
+        <div class="wt-val" id="totFarmers">0</div>
+        <div class="wt-val" id="totAgri">0</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="btn-row">
+    <button class="btn-back-sm" onclick="goToStep(2)">‹ Back</button>
+    <button class="btn-primary" onclick="goToStep(4)">Next — Challenges →</button>
+  </div>
+</div>
+
+<!-- ══ STEP 4: Challenges ══ -->
+<div class="screen" id="s4">
+  <div class="step-dots" id="dots4"></div>
+  <div class="screen-title">Challenges & Mitigation</div>
+  <div class="screen-sub">Document field challenges and how they were handled</div>
+
+  <div class="card">
+    <div class="card-header">
+      <div class="ch-icon" style="background:#FFE4E6">⚠️</div>
+      <div><div class="ch-title">Field Challenges</div><div class="ch-sub">Add up to 3 challenges encountered today</div></div>
+    </div>
+    <div class="card-divider"></div>
+    <div class="card-body">
+      <div id="challengeItems"></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <div class="ch-icon" style="background:#D8F3DC">💬</div>
+      <div><div class="ch-title">General Observations</div><div class="ch-sub">Anything else worth noting</div></div>
+    </div>
+    <div class="card-divider"></div>
+    <div class="card-body">
+      <div class="field"><label>Field Observations (optional)</label><textarea id="f_observations" placeholder="Crop conditions, farmer sentiments, any notable findings…"></textarea></div>
+    </div>
+  </div>
+
+  <div class="btn-row">
+    <button class="btn-back-sm" onclick="goToStep(3)">‹ Back</button>
+    <button class="btn-primary" onclick="goToStep(5)">Next — Status →</button>
+  </div>
+</div>
+
+<!-- ══ STEP 5: Status & Submit ══ -->
+<div class="screen" id="s5">
+  <div class="step-dots" id="dots5"></div>
+  <div class="screen-title">Overall Survey Status</div>
+  <div class="screen-sub">How did today's survey activity go overall?</div>
+
+  <div class="card">
+    <div class="card-header">
+      <div class="ch-icon" style="background:var(--lt)">🚦</div>
+      <div><div class="ch-title">Today's Rating</div><div class="ch-sub">Select the most accurate status</div></div>
+    </div>
+    <div class="card-divider"></div>
+    <div class="card-body">
+      <div class="status-grid">
+        <div class="status-opt" id="st-excellent" onclick="setStatus('excellent')">
+          <div class="so-icon">🌟</div>
+          <div><div class="so-label">Excellent</div><div class="so-desc">Exceeded targets, smooth operations</div></div>
+        </div>
+        <div class="status-opt" id="st-good" onclick="setStatus('good')">
+          <div class="so-icon">✅</div>
+          <div><div class="so-label">Good</div><div class="so-desc">On track, minor issues handled</div></div>
+        </div>
+        <div class="status-opt" id="st-fair" onclick="setStatus('fair')">
+          <div class="so-icon">⚠️</div>
+          <div><div class="so-label">Fair</div><div class="so-desc">Below target, challenges faced</div></div>
+        </div>
+        <div class="status-opt" id="st-poor" onclick="setStatus('poor')">
+          <div class="so-icon">🔴</div>
+          <div><div class="so-label">Poor</div><div class="so-desc">Significant disruptions today</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <div class="ch-icon" style="background:#FFF3E0">📌</div>
+      <div><div class="ch-title">Tomorrow's Plan</div><div class="ch-sub">Brief note on next steps</div></div>
+    </div>
+    <div class="card-divider"></div>
+    <div class="card-body">
+      <div class="field"><label>Plan for Tomorrow</label><textarea id="f_tomorrow" placeholder="Which wards, how many agripreneurs, any adjustments…"></textarea></div>
+    </div>
+  </div>
+
+  <div class="btn-row">
+    <button class="btn-back-sm" onclick="goToStep(4)">‹ Back</button>
+    <button class="btn-primary" id="submitBtn" onclick="submitReport()"><span id="submitLabel">📤 Submit Report</span></button>
+  </div>
+  <div style="height:10px"></div>
+</div>
+
+<!-- ══ SUCCESS ══ -->
+<div class="screen" id="sSuccess">
+  <div class="success-wrap">
+    <div class="success-anim">🌽</div>
+    <h2>Report Submitted!</h2>
+    <p>Your daily maize survey report has been saved and is now visible on the county coordinator dashboard.</p>
+    <div class="success-stats">
+      <div class="ss-card"><div class="ss-val" id="sucFarmers">0</div><div class="ss-lbl">Farmers Reached</div></div>
+      <div class="ss-card"><div class="ss-val" id="sucAgri">0</div><div class="ss-lbl">Agripreneurs Deployed</div></div>
+    </div>
+    <p style="font-size:12px;color:#999;margin-top:4px">Submitted: <span id="sucTime"></span></p>
+    <button class="btn-primary" style="margin-top:24px" onclick="resetForm()">Submit Another Day's Report</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const SUBCOUNTIES=[
+  {name:"Gatundu North",wards:["Gituamba","Githobokoni","Chania","Mang'u"]},
+  {name:"Gatundu South",wards:["Kiamwangi","Kiganjo","Ndarugo","Ngenda"]},
+  {name:"Githunguri",wards:["Githunguri","Githiga","Ikinu","Ngewa","Komothai"]},
+  {name:"Juja",wards:["Murera","Theta","Juja","Witeithie","Kalimoni"]},
+  {name:"Kabete",wards:["Gitaru","Muguga","Nyathuna","Kabete","Uthiru"]},
+  {name:"Kiambaa",wards:["Cianda","Karuri","Ndenderu","Muchatha","Kihara"]},
+  {name:"Kiambu",wards:["Ting'ang'a","Ndumberi","Riabai","Township"]},
+  {name:"Kikuyu",wards:["Karai","Nachu","Sigona","Kikuyu","Kinoo"]},
+  {name:"Lari",wards:["Kinale","Kijabe","Nyanduma","Kamburu","Lari/Kirenga"]},
+  {name:"Limuru",wards:["Bibirioni","Limuru Central","Ndeiya","Limuru East","Ngecha/Tigoni"]},
+  {name:"Ruiru",wards:["Gitothua","Biashara","Gatongora","Kahawa/Sukari","Kahawa Wendani","Kiuu","Mwiki","Mwihoko"]},
+  {name:"Thika Town",wards:["Township","Kamenu","Hospital","Gatuanyaga","Ngoliba"]},
+];
+
+let state = { scIdx:null, step:1, status:null, mitStatus:{} };
+const TOTAL_STEPS = 5;
+
+function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2500)}
+
+function renderDots(stepId){
+  const el=document.getElementById('dots'+stepId);
+  el.innerHTML=Array.from({length:TOTAL_STEPS},(_,i)=>`<div class="dot ${i+1===stepId?'active':i+1<stepId?'done':''}"></div>`).join('');
+}
+function updateProgress(step){
+  document.getElementById('progFill').style.width=(step/TOTAL_STEPS*100)+'%';
+  document.getElementById('progLabel').textContent=`Step ${step} of ${TOTAL_STEPS}`;
+  [1,2,3,4,5].forEach(n=>renderDots(n));
+}
+
+// Build sub-county picker
+const grid=document.getElementById('scGrid');
+SUBCOUNTIES.forEach((sc,i)=>{
+  const d=document.createElement('div');
+  d.className='sc-card';
+  d.innerHTML=`<div class="sc-num">SC ${i+1}</div><div class="sc-name">${sc.name}</div><div class="sc-wards">${sc.wards.length} wards</div>`;
+  d.onclick=()=>selectSC(i);
+  grid.appendChild(d);
+});
+
+function selectSC(idx){
+  document.querySelectorAll('.sc-card').forEach(c=>c.classList.remove('selected'));
+  grid.children[idx].classList.add('selected');
+  state.scIdx=idx;
+  const sc=SUBCOUNTIES[idx];
+  document.getElementById('f_sc').value=sc.name;
+  document.getElementById('f_date').value=new Date().toISOString().split('T')[0];
+  buildWardRows(sc);
+  document.getElementById('wardCardTitle').textContent=sc.name+' Wards';
+  document.getElementById('s3sub').textContent=`${sc.wards.length} wards in ${sc.name} — enter today's numbers`;
+  setTimeout(()=>goToStep(2),180);
+}
+
+function buildWardRows(sc){
+  const container=document.getElementById('wardRows');
+  container.innerHTML='';
+  sc.wards.forEach((w,i)=>{
+    const row=document.createElement('div');
+    row.className='ward-row';
+    row.innerHTML=`
+      <div class="ward-name">${w}</div>
+      <input type="number" class="ward-input" id="wf_${i}" placeholder="0" min="0" oninput="calcWardTotals()">
+      <input type="number" class="ward-input" id="wa_${i}" placeholder="0" min="0" oninput="calcWardTotals()">`;
+    container.appendChild(row);
+  });
+  calcWardTotals();
+}
+
+function calcWardTotals(){
+  if(state.scIdx===null)return;
+  const sc=SUBCOUNTIES[state.scIdx];
+  let tf=0,ta=0;
+  sc.wards.forEach((_,i)=>{
+    tf+=parseInt(document.getElementById('wf_'+i)?.value)||0;
+    ta+=parseInt(document.getElementById('wa_'+i)?.value)||0;
+  });
+  document.getElementById('totFarmers').textContent=tf.toLocaleString();
+  document.getElementById('totAgri').textContent=ta;
+}
+
+// Challenges
+function buildChallenges(){
+  const c=document.getElementById('challengeItems');
+  c.innerHTML='';
+  [1,2,3].forEach(n=>{
+    c.innerHTML+=`
+      <div class="challenge-item">
+        <div class="ci-num">Challenge ${n} ${n>1?'(optional)':''}</div>
+        <div class="ci-field"><label>What happened?</label><textarea id="ch_what_${n}" placeholder="Describe the challenge briefly…"></textarea></div>
+        <div class="ci-field"><label>How was it handled?</label><textarea id="ch_how_${n}" placeholder="Action taken or reason it remains unresolved…"></textarea></div>
+        <div class="ci-field"><label>Resolution Status</label>
+          <div class="mitigation-status">
+            <button class="mit-btn" id="mit_r_${n}" onclick="setMit(${n},'resolved')">✅ Resolved</button>
+            <button class="mit-btn" id="mit_o_${n}" onclick="setMit(${n},'ongoing')">🔄 Ongoing</button>
+            <button class="mit-btn" id="mit_u_${n}" onclick="setMit(${n},'unresolved')">❌ Unresolved</button>
+          </div>
+        </div>
+      </div>`;
+  });
+}
+
+function setMit(n,val){
+  state.mitStatus[n]=val;
+  ['resolved','ongoing','unresolved'].forEach(v=>document.getElementById(`mit_${v[0]}_${n}`).className='mit-btn');
+  document.getElementById(`mit_${val[0]}_${n}`).classList.add('sel-'+val);
+}
+
+function setStatus(s){
+  state.status=s;
+  ['excellent','good','fair','poor'].forEach(v=>{
+    const el=document.getElementById('st-'+v);
+    el.className='status-opt'+(v===s?' sel-'+v:'');
+  });
+}
+
+function goToStep(n){
+  if(n===2&&state.scIdx===null){toast('⚠️ Please select a sub-county first');return}
+  if(n===4)buildChallenges();
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById('s'+n).classList.add('active');
+  state.step=n;
+  updateProgress(n);
+  window.scrollTo(0,0);
+}
+
+async function submitReport(){
+  if(!state.status){toast('⚠️ Please select a survey status');return}
+  if(!document.getElementById('f_date').value){toast('⚠️ Please enter the date');return}
+  if(!document.getElementById('f_name').value.trim()){toast('⚠️ Please enter your name');return}
+
+  const btn=document.getElementById('submitBtn');
+  btn.disabled=true;
+  document.getElementById('submitLabel').innerHTML='<span class="spinner"></span> Submitting…';
+
+  const sc=SUBCOUNTIES[state.scIdx];
+  const wardData=sc.wards.map((w,i)=>({
+    ward:w,
+    farmers:parseInt(document.getElementById('wf_'+i)?.value)||0,
+    agripreneurs:parseInt(document.getElementById('wa_'+i)?.value)||0
+  }));
+
+  const challenges=[1,2,3].map(n=>{
+    const what=document.getElementById('ch_what_'+n)?.value||'';
+    if(!what.trim())return null;
+    return{what,how:document.getElementById('ch_how_'+n)?.value||'',status:state.mitStatus[n]||null};
+  }).filter(Boolean);
+
+  const totalFarmers=wardData.reduce((s,w)=>s+w.farmers,0);
+  const totalAgri=wardData.reduce((s,w)=>s+w.agripreneurs,0);
+
+  const report={
+    id:Date.now(),
+    submittedAt:new Date().toISOString(),
+    submittedBy:document.getElementById('f_name').value.trim(),
+    subCounty:sc.name,
+    date:document.getElementById('f_date').value,
+    day:parseInt(document.getElementById('f_day').value)||1,
+    agriPlanned:parseInt(document.getElementById('f_agri_plan').value)||0,
+    agriDeployed:parseInt(document.getElementById('f_agri_act').value)||0,
+    agriNotes:document.getElementById('f_agri_names').value,
+    wardData,
+    totalFarmers,
+    totalAgri,
+    challenges,
+    observations:document.getElementById('f_observations').value,
+    tomorrowPlan:document.getElementById('f_tomorrow').value,
+    status:state.status,
+  };
+
+  try{
+    let existing=[];
+    try{const r=await window.storage.get('maize_survey_reports',true);if(r)existing=JSON.parse(r.value);}catch(e){}
+    existing.push(report);
+    await window.storage.set('maize_survey_reports',JSON.stringify(existing),true);
+    document.getElementById('sucFarmers').textContent=totalFarmers.toLocaleString();
+    document.getElementById('sucAgri').textContent=totalAgri;
+    document.getElementById('sucTime').textContent=new Date().toLocaleString();
+    document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+    document.getElementById('sSuccess').classList.add('active');
+    window.scrollTo(0,0);
+  }catch(e){
+    toast('❌ Submission failed. Please try again.');
+    btn.disabled=false;
+    document.getElementById('submitLabel').textContent='📤 Submit Report';
+  }
+}
+
+function resetForm(){
+  state={scIdx:null,step:1,status:null,mitStatus:{}};
+  document.querySelectorAll('.sc-card').forEach(c=>c.classList.remove('selected'));
+  ['f_date','f_name','f_agri_plan','f_agri_act','f_agri_names','f_observations','f_tomorrow'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  document.getElementById('f_day').value='';
+  updateProgress(1);
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById('s1').classList.add('active');
+  window.scrollTo(0,0);
+}
+
+updateProgress(1);
+</script>
+</body>
+</html>
